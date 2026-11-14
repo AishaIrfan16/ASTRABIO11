@@ -7,5 +7,7 @@ anthropic>=0.40      # optional: only used if ANTHROPIC_API_KEY is set
 scikit-learn>=1.4
 joblib
 
+requests
+
 # Tests (optional)
 pytest>=8
