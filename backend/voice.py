@@ -35,7 +35,7 @@ def synthesize(text: str) -> bytes:
             headers={"x-api-key": api_key},
             json={
                 "text": text,
-                "voice": "en-US-AriaNeural",
+                "voice": "en-GB-AbbiNeural",
                 "rate": "+0%",
                 "pitch": "+0Hz",
                 "output_format": "mp3",

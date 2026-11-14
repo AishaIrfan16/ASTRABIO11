@@ -5,7 +5,7 @@ NAV=[['home','⌂','Home'],['checkin','✎','Check-in'],['body','☍','Body Map'
 HZ=['all','radiation','gravity','immune','mind','habitat'],LAY=['skin','muscle','skeleton','organs','brain'],
 CMDS=['How am I doing today?','Explain my radiation level','Show my body map','I feel lonely','Open my daily check-in'],
 ORDER=l=>['normal','watch','warning','critical'].indexOf(l),phone=()=>innerWidth<900,SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let S,day=142,screen='home',sel=null,flt='all',layer='skin',body=null,pulse=null,LOG=[],muted=false,rsel='legs',speaking=false,rec,wasPhone=phone();
+let S,day=142,screen='home',sel=null,flt='all',layer='skin',body=null,pulse=null,LOG=[],muted=false,rsel='legs',speaking=false,rec,wasPhone=phone(),voiceAudio=null,voiceUrl=null,voiceRequest=0,voiceController=null;
 const stChip=l=>`<span class="st" style="color:${COL[l]}; border-color:${COL[l]}33; background:${COL[l]}11">${IC[l]} ${LB[l]}</span>`,
 modChip=c=>{const[a,b,k]=CH[c];return `<span class="st" style="color:${k}; border-color:${k}33; background:${k}11">${b} ${a}</span>`};
 function chart(v,col,h=90){const mn=Math.min(...v),mx=Math.max(...v),r=(mx-mn)||1,p=v.map((y,i)=>`${i*(300/(v.length-1))},${h-8-(y-mn)/r*(h-24)}`).join(' ');
@@ -52,6 +52,7 @@ return `${S.rad.spe?`<div class="card warn" style="margin-bottom:16px">⚠ <b>Sp
 <div class="row"><span class="badge">Health score ${S.checkin.score}/100</span><span class="badge d">🔥 ${S.checkin.streak}-day streak</span></div>
 <p style="color:var(--mut);margin:0">${n?`${n} item${n>1?'s':''} require${n>1?'':'s'} attention.`:'All monitored parameters nominal.'} ${al.length?'Critical flags: '+al.join(', ')+'.':''}</p>
 <div class="chips" style="justify-content:center">${CMDS.map(c=>`<button class="cmd" onclick="ask('${c}')">“${c}”</button>`).join('')}</div></div>
+<div class="card chat" id="home-chat">${LOG.map(b=>`<div class="bub ${b.n?'':'u'}">${b.t}</div>`).join('')||'<div class="bub">Greetings Commander Amara. ASTRA is ready. Type a message below to begin.</div>'}</div>
 ${nba()}<div class="grid2"><div class="card" style="height:340px;padding:6px"><canvas class="b" id="cv"></canvas></div><div style="align-self:center">${remCard()}</div></div>
 <div class="mods">${Object.entries(S.modules).map(([k,m])=>`<div class="card mod" style="border-top:2px solid ${CH[m.chip][2]}" onclick="go('${k}')"><span style="font-size:24px">${NAV.find(n=>n[0]==k)?.[1]||''}</span><b style="font-size: 15px;">${k[0].toUpperCase()+k.slice(1)}</b>${modChip(m.chip)}</div>`).join('')}</div>
 <div class="chips"><span style="color:var(--mut);font-size:13px">Demo:</span><button class="f" onclick="demo(20)">Normal day</button><button class="f" onclick="demo(142)">Solar storm</button><button class="f" onclick="demo(60,{hr:118,sleep:5,mood:4})">Health warning</button></div>
@@ -129,18 +130,54 @@ async function loadDay(d){const old=S;day=d;S=await (await fetch('/api/state?day
 const w=S.markers.find((m,i)=>ORDER(m.level)>ORDER(old.markers[i].level));
 if(body){body.update();body.filter(flt)}if(w){pulse=w.id;const t=`Anomaly alert: your ${w.name.toLowerCase()} is now ${w.level}. ${w.label}: ${w.value} ${w.unit}.`;const b=$('#bn');b.textContent='▲ '+t;b.classList.add('show');setTimeout(()=>{b.classList.remove('show');pulse=null},5000);say(t)}
 const sd=document.querySelector('.side');if(sd&&sel)sd.outerHTML=sideHTML(S.markers.find(x=>x.id==sel));if(screen!='body'&&screen!='home')render()}
-function say(t){LOG.push({n:1,t});const tt=$('#tt');tt.textContent='ASTRA transmitting… '+t;const c=$('#cap');if(c)c.textContent='“'+t+'”';
-speaking=true;$('#wave').classList.add('on');document.querySelectorAll('.orb').forEach(o=>o.classList.add('sp'));
-const end=()=>{speaking=false;$('#wave').classList.remove('on');document.querySelectorAll('.orb').forEach(o=>o.classList.remove('sp'));tt.textContent='ASTRA is ready'};
-if(!muted&&'speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.onend=end;u.onerror=end;speechSynthesis.speak(u)}else setTimeout(end,Math.min(6000,t.length*45));
-const ch=$('#chat');if(ch){ch.insertAdjacentHTML('beforeend',`<div class="bub">${t}</div>`);ch.scrollTop=1e9}}
-async function ask(text){text=text.replace(/^hey astra[, ]*/i,'');LOG.push({n:0,t:text});const ch=$('#chat');if(ch)ch.insertAdjacentHTML('beforeend',`<div class="bub u">${text}</div>`);
+function stopVoice(){voiceRequest++;if(voiceController){voiceController.abort();voiceController=null}if(voiceAudio){voiceAudio.pause();voiceAudio=null}if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null}
+if('speechSynthesis' in window)speechSynthesis.cancel()}
+function finishVoice(requestId,message){if(requestId!==voiceRequest)return;
+if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null}voiceAudio=null;voiceController=null;speaking=false;$('#wave').classList.remove('on');
+document.querySelectorAll('.orb').forEach(o=>o.classList.remove('sp'));$('#tt').textContent=message||'ASTRA is ready'}
+function browserVoices(){if(!('speechSynthesis' in window))return Promise.resolve([]);
+const synth=speechSynthesis,voices=synth.getVoices();if(voices.length)return Promise.resolve(voices);
+return new Promise(resolve=>{let settled=false;const done=()=>{if(settled)return;settled=true;clearTimeout(timer);
+synth.removeEventListener('voiceschanged',changed);resolve(synth.getVoices())};
+const changed=()=>{if(synth.getVoices().length)done()};const timer=setTimeout(done,700);
+synth.addEventListener('voiceschanged',changed)})}
+async function speakWithApi(requestId,text){if(requestId!==voiceRequest)return;
+if('speechSynthesis' in window)speechSynthesis.cancel();
+$('#tt').textContent='Using API voice…';voiceController=new AbortController();
+try{const response=await fetch('/api/voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text}),signal:voiceController.signal});
+if(requestId!==voiceRequest)return;
+if(!response.ok){let result={};try{result=await response.json()}catch(e){}throw new Error(result.error||'Speech generation failed.')}
+voiceUrl=URL.createObjectURL(await response.blob());voiceAudio=new Audio(voiceUrl);
+voiceAudio.onended=()=>finishVoice(requestId);voiceAudio.onerror=()=>finishVoice(requestId,'API voice playback failed.');
+await voiceAudio.play()}catch(error){if(requestId===voiceRequest&&error.name!=='AbortError')finishVoice(requestId,'API voice failed: '+error.message)}}
+async function say(t){LOG.push({n:1,t});const tt=$('#tt');const c=$('#cap');if(c)c.textContent='“'+t+'”';
+stopVoice();const requestId=voiceRequest;speaking=true;tt.textContent='ASTRA transmitting… '+t;$('#wave').classList.add('on');
+document.querySelectorAll('.orb').forEach(o=>o.classList.add('sp'));
+const ch=$('#chat')||$('#home-chat');if(ch){ch.insertAdjacentHTML('beforeend',`<div class="bub">${t}</div>`);ch.scrollTop=1e9}
+if(muted){finishVoice(requestId);return}
+const voices=await browserVoices();if(requestId!==voiceRequest)return;
+if(voices.length&&'speechSynthesis' in window){try{const utterance=new SpeechSynthesisUtterance(t);utterance.onend=()=>finishVoice(requestId);
+utterance.onerror=()=>speakWithApi(requestId,t);speechSynthesis.cancel();speechSynthesis.speak(utterance)}
+catch(error){speakWithApi(requestId,t)}}
+else speakWithApi(requestId,t)}
+async function ask(text){text=text.replace(/^hey astra[, ]*/i,'');LOG.push({n:0,t:text});const ch=$('#chat')||$('#home-chat');if(ch){ch.insertAdjacentHTML('beforeend',`<div class="bub u">${text}</div>`);ch.scrollTop=1e9}
 const r=await (await fetch('/api/astra',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,day})})).json();
 S=await (await fetch('/api/state?day='+day)).json();if(r.select)sel=r.select;if(r.nav&&r.nav!=screen)go(r.nav);else if(r.select)go('body',1);else if(r.nav=='checkin')render();say(r.reply)}
 
 /* ---------- events and start ---------- */
-$('#ti').onkeydown=e=>{if(e.key=='Enter'&&e.target.value.trim()){ask(e.target.value.trim());e.target.value=''}};
-$('#mute').onclick=()=>{muted=!muted;$('#mute').innerHTML=muted?'🔇<span class="lb"> Voice off</span>':'🔊<span class="lb"> Voice on</span>';if(muted)speechSynthesis.cancel()};
+$('#ti').onkeydown=e=>{
+  if(e.key=='Enter'&&e.target.value.trim()){
+    ask(e.target.value.trim());
+    e.target.value='';
+
+    const chat=$('#chat')||$('#home-chat');
+    if(chat) chat.scrollIntoView({
+      behavior:'smooth',
+      block:'start'
+    });
+  }
+};
+$('#mute').onclick=()=>{muted=!muted;$('#mute').innerHTML=muted?'🔇<span class="lb"> Voice off</span>':'🔊<span class="lb"> Voice on</span>';if(muted){stopVoice();finishVoice(voiceRequest)}};
 $('#wave').innerHTML='<i></i>'.repeat(26);document.querySelectorAll('#wave i').forEach((e,i)=>e.style.animationDelay=(i*.05)+'s');
 $('#mic').onclick=()=>{if(!SR)return toast('Speech recognition unsupported. Type message instead.');if(rec){rec.stop();return}
 rec=new SR();rec.lang='en-US';rec.interimResults=true;$('#mic').classList.add('on');$('#wave').classList.add('on');$('#tt').textContent='Listening…';
@@ -150,4 +187,6 @@ $('#hamburger').onclick=()=>{$('#app').classList.toggle('collapsed');dispatchEve
 $('#app').classList.toggle('collapsed',wasPhone);addEventListener('resize',()=>{if(phone()!=wasPhone){wasPhone=phone();$('#app').classList.toggle('collapsed',wasPhone)}});
 fetch('/api/state?day='+day).then(r=>r.json()).then(s=>{S=s;render()},()=>{$('#main').innerHTML='<div class="hero"><h2>Can’t reach ASTRABIO</h2><p style="color:var(--mut);margin:0">The server is not answering. Check that it is running, then try again.</p><button class="btn" onclick="location.reload()">Try again</button></div>'});
 addEventListener('unhandledrejection',()=>toast('Something went wrong. Please try again.'));
-$('#enter').onclick=()=>$('#intro').classList.add('out');
+$('#enter').onclick=()=>{
+  $('#intro').classList.add('out');
+};

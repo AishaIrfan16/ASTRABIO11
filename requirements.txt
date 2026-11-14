@@ -2,6 +2,8 @@
 flask>=3.0
 gunicorn
 anthropic>=0.40      # optional: only used if ANTHROPIC_API_KEY is set
+requests>=2.31
+python-dotenv>=1.0
 
 # Model file (models/trained_model.pkl is a scikit-learn pipeline) and notebook exports
 scikit-learn>=1.4

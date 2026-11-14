@@ -83,7 +83,7 @@ input[type=range]{width:100%;accent-color:var(--cy);height:36px;cursor:pointer}
 .ti{display:block;margin-top:6px;border-radius:14px;padding:10px 14px}
 #tl input:focus,.ti:focus{outline:0;border-color:var(--cy)}
 #tt{font-size:13px;color:var(--cy);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat{height:320px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.chat{height:320px;overflow:auto;display:flex;flex-direction:column;gap:12px;scroll-margin-top:20px;margin-bottom:30px}
 .bub{max-width:75%;padding:12px 18px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--glass-border)}
 .bub.u{align-self:flex-end;background:rgba(34,211,238,.12);border-color:rgba(34,211,238,.25)}
 .dots{display:flex;gap:8px}
