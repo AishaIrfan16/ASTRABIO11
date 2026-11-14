@@ -5,24 +5,31 @@
 <title>ASTRABIO // Quantum Holographic Interface</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<link rel="stylesheet" href="style.css"></head>
+<link rel="stylesheet" href="style.css">
+</head>
 <body>
+<div id="intro"><div class="orb sm"></div><b>ASTRABIO</b><span>Astronaut health companion for long missions to Mars</span>
+<ul>
+<li><i>☍</i><div><strong>Body Map</strong>Risks from radiation, gravity, immunity and mind on a 3D body</div></li>
+<li><i>✎</i><div><strong>Daily Check-in</strong>7 health readings, compared with your own baseline</div></li>
+<li><i>◉</i><div><strong>ASTRA Voice</strong>A companion you can talk to, and it talks back</div></li>
+<li><i>☢</i><div><strong>Early Warnings</strong>Solar storms and health changes flagged before they get serious</div></li>
+</ul>
+<button class="btn" id="enter">Enter mission →</button></div>
 <div id="app">
 <header id="top">
 <button id="hamburger" title="Toggle Sidebar" aria-label="Toggle Sidebar">☰</button>
-<b style="color:var(--cy); letter-spacing:3px; text-shadow: 0 0 15px rgba(34,211,238,0.5);">ASTRABIO</b>
-<b style="font-weight: 500; opacity: 0.9;">Cdr. Amara Okafor</b>
-<span id="dn" style="color: var(--mut); font-size: 14px;"></span>
-<span class="sp"></span>
-<span class="badge">● Prototype mode</span>
-<span class="badge d">Simulated data</span>
+<b style="color:var(--cy); letter-spacing:4px;">ASTRABIO</b>
+<b id="who" style="font-weight:500; opacity:0.9;">Cdr. Amara Okafor</b>
+<span id="dn" style="color:var(--mut); font-size:14px;"></span>
+<span class="sp"></span><span class="badge">● Prototype mode</span><span class="badge d">Simulated data</span>
 </header>
 <nav id="rail"></nav><main id="main"></main>
 <footer id="vb">
 <button id="mic" title="Talk to ASTRA" aria-label="Talk to ASTRA">🎙</button>
 <div id="wave"></div>
 <div id="tl"><div id="tt">ASTRA is ready</div><input id="ti" placeholder="Type to ASTRA, or press Enter…"><div class="hint">Say "Hey ASTRA" or tap the mic</div></div>
-<button class="f" id="mute">🔊 Voice on</button>
+<button class="f" id="mute" aria-label="Toggle voice">🔊<span class="lb"> Voice on</span></button>
 </footer></div>
 <div class="banner" id="bn"></div><div id="toast"></div>
 <script src="app.js"></script>
