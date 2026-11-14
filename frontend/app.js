@@ -4,7 +4,7 @@ CH={stable:['Stable','✓','#34D399'],watch:['Watch','◆','#FACC15'],alert:['Al
 NAV=[['home','⌂','Home'],['checkin','✎','Check-in'],['body','☍','Body Map'],['radiation','☢','Radiation'],['gravity','⇩','Gravity'],['immune','✚','Immune'],['mind','☾','MindSpace'],['habitat','▣','Habitat'],['companion','◉','Companion'],['research','⚗','Research']],
 HZ=['all','radiation','gravity','immune','mind','habitat'],LAY=['skin','muscle','skeleton','organs','brain'],
 CMDS=['How am I doing today?','Explain my radiation level','Show my body map','I feel lonely','Open my daily check-in'];
-let S,day=142,screen='home',sel=null,flt='all',layer='skin',body=null,pulse=null,LOG=[],muted=false,rsel='legs',speaking=false;
+let S,day=142,screen='home',sel=null,flt='all',layer='skin',body=null,pulse=null,LOG=[],muted=false,rsel='legs',speaking=false,voiceAudio=null,voiceUrl=null,voiceRequest=0,voiceController=null;
 const stChip=(l)=>`<span class="st" style="color:${COL[l]}; border-color:${COL[l]}33; background:${COL[l]}11">${IC[l]} ${LB[l]}</span>`,
 modChip=(c)=>{const[a,b,k]=CH[c];return `<span class="st" style="color:${k}; border-color:${k}33; background:${k}11">${b} ${a}</span>`};
 function chart(v,col,h=90){const mn=Math.min(...v),mx=Math.max(...v),r=(mx-mn)||1,p=v.map((y,i)=>`${i*(300/(v.length-1))},${h-8-(y-mn)/r*(h-24)}`).join(' ');
@@ -129,16 +129,37 @@ const w=S.markers.find((m,i)=>ORDER(m.level)>ORDER(old.markers[i].level));
 if(body){body.update();body.filter(flt)}if(w){pulse=w.id;const t=`Anomaly alert: your ${w.name.toLowerCase()} is now ${w.level}. ${w.label}: ${w.value} ${w.unit}.`;const b=$('#bn');b.textContent='▲ '+t;b.classList.add('show');setTimeout(()=>{b.classList.remove('show');pulse=null},5000);say(t)}
 const sd=document.querySelector('.side');if(sd&&sel)sd.outerHTML=sideHTML(S.markers.find(x=>x.id==sel));if(screen!='body'&&screen!='home')render()}
 const ORDER=l=>['normal','watch','warning','critical'].indexOf(l);
-function say(t){LOG.push({n:1,t});const tt=$('#tt');tt.textContent='ASTRA transmitting… '+t;const c=$('#cap');if(c)c.textContent='“'+t+'”';
-speaking=true;$('#wave').classList.add('on');document.querySelectorAll('.orb').forEach(o=>o.classList.add('sp'));
-const end=()=>{speaking=false;$('#wave').classList.remove('on');document.querySelectorAll('.orb').forEach(o=>o.classList.remove('sp'));tt.textContent='ASTRA is ready'};
-if(!muted&&'speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.onend=end;u.onerror=end;speechSynthesis.speak(u)}else setTimeout(end,Math.min(6000,t.length*45));
-const ch=$('#chat');if(ch){ch.insertAdjacentHTML('beforeend',`<div class="bub">${t}</div>`);ch.scrollTop=1e9}}
+function stopVoice(){voiceRequest++;if(voiceController){voiceController.abort();voiceController=null}if(voiceAudio){voiceAudio.pause();voiceAudio=null}if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null}
+if('speechSynthesis' in window)speechSynthesis.cancel()}
+function finishVoice(requestId,message){if(requestId!==voiceRequest)return;
+if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null}voiceAudio=null;voiceController=null;speaking=false;$('#wave').classList.remove('on');
+document.querySelectorAll('.orb').forEach(o=>o.classList.remove('sp'));$('#tt').textContent=message||'ASTRA is ready'}
+function fallbackVoice(requestId,text,error){if(requestId!==voiceRequest)return;
+if(voiceAudio){voiceAudio.pause();voiceAudio=null}if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null}
+if(!('speechSynthesis' in window)){finishVoice(requestId,'Voice playback failed: '+error.message);return}
+$('#tt').textContent='FreeTTS unavailable; using browser voice.';
+const utterance=new SpeechSynthesisUtterance(text);utterance.onend=()=>finishVoice(requestId);
+utterance.onerror=()=>finishVoice(requestId,'FreeTTS and browser voice playback failed.');
+try{speechSynthesis.cancel();speechSynthesis.speak(utterance)}
+catch(fallbackError){finishVoice(requestId,'Browser voice playback failed: '+fallbackError.message)}}
+async function say(t){LOG.push({n:1,t});const tt=$('#tt');const c=$('#cap');if(c)c.textContent='“'+t+'”';
+stopVoice();const requestId=voiceRequest;speaking=true;tt.textContent='ASTRA transmitting… '+t;$('#wave').classList.add('on');
+document.querySelectorAll('.orb').forEach(o=>o.classList.add('sp'));
+const ch=$('#chat');if(ch){ch.insertAdjacentHTML('beforeend',`<div class="bub">${t}</div>`);ch.scrollTop=1e9}
+if(muted){finishVoice(requestId);return}
+voiceController=new AbortController();
+try{const response=await fetch('/api/voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t}),signal:voiceController.signal});
+if(requestId!==voiceRequest)return;
+if(!response.ok){const result=await response.json();throw new Error(result.error||'Speech generation failed.')}
+voiceUrl=URL.createObjectURL(await response.blob());voiceAudio=new Audio(voiceUrl);
+voiceAudio.onended=()=>finishVoice(requestId);voiceAudio.onerror=()=>fallbackVoice(requestId,t,new Error('Audio playback failed.'));
+await voiceAudio.play()}catch(error){if(requestId!==voiceRequest)return;
+if(error.name!=='AbortError')fallbackVoice(requestId,t,error)}}
 async function ask(text){text=text.replace(/^hey astra[, ]*/i,'');LOG.push({n:0,t:text});const ch=$('#chat');if(ch)ch.insertAdjacentHTML('beforeend',`<div class="bub u">${text}</div>`);
 const r=await (await fetch('/api/astra',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,day})})).json();
 S=await (await fetch('/api/state?day='+day)).json();if(r.select)sel=r.select;if(r.nav&&r.nav!=screen)go(r.nav);else if(r.select)go('body',1);else if(r.nav=='checkin')render();say(r.reply)}
 $('#ti').onkeydown=e=>{if(e.key=='Enter'&&e.target.value.trim()){ask(e.target.value.trim());e.target.value=''}};
-$('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇 Voice off':'🔊 Voice on';if(muted)speechSynthesis.cancel()};
+$('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'🔇 Voice off':'🔊 Voice on';if(muted){stopVoice();finishVoice(voiceRequest)}};
 $('#wave').innerHTML='<i></i>'.repeat(26);document.querySelectorAll('#wave i').forEach((e,i)=>e.style.animationDelay=(i*.05)+'s');
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec;
 $('#mic').onclick=()=>{if(!SR)return toast('Speech recognition unsupported. Type message instead.');if(rec){rec.stop();return}
