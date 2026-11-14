@@ -1,8 +1,10 @@
 """HTTP API for ASTRABIO (Flask blueprint). All routes live under /api."""
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
 import assistant
 import database as db
+import moderation
+import voice
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -51,3 +53,33 @@ def astra():
     """Talk to ASTRA: {"text": "my heart rate is 72", "day": 142}"""
     j = request.get_json(force=True) or {}
     return jsonify(assistant.respond(j.get("text", ""), j.get("day", db.DEFAULT_DAY)))
+
+
+@api_bp.post("/voice")
+def speak():
+    """Generate ASTRA speech audio: {"text": "Hello"}."""
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("text"), str) or not payload["text"].strip():
+        return jsonify(ok=False, error="Send non-empty text in a 'text' field."), 400
+    try:
+        audio = voice.synthesize(payload["text"])
+    except voice.VoiceConfigurationError as exc:
+        return jsonify(ok=False, error=str(exc)), 503
+    except voice.VoiceError as exc:
+        return jsonify(ok=False, error=str(exc)), 502
+    return Response(audio, mimetype="audio/mpeg")
+
+
+@api_bp.post("/moderate")
+def moderate_text():
+    """Moderate text using RapidAPI Simple GPT1: {"text": "..."}."""
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("text"), str):
+        return jsonify(ok=False, error="Send text in a 'text' field."), 400
+    try:
+        result = moderation.create_moderation(payload["text"])
+    except moderation.ModerationConfigurationError as exc:
+        return jsonify(ok=False, error=str(exc)), 503
+    except moderation.ModerationError as exc:
+        return jsonify(ok=False, error=str(exc)), 502
+    return jsonify(ok=True, result=result)
