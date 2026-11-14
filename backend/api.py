@@ -1,0 +1,41 @@
+"""HTTP API for ASTRABIO (Flask blueprint). All routes live under /api."""
+from flask import Blueprint, jsonify, request
+
+import assistant
+import database as db
+
+api_bp = Blueprint("api", __name__, url_prefix="/api")
+
+
+@api_bp.get("/state")
+def get_state():
+    """Dashboard payload for a mission day: /api/state?day=142"""
+    return jsonify(db.state(request.args.get("day", db.DEFAULT_DAY)))
+
+
+@api_bp.post("/checkin")
+def post_checkin():
+    """Log measurements: {"values": {"hr": 72, "sleep": 7.5}}. Rejects obvious typos with HTTP 400."""
+    vals = (request.get_json(force=True) or {}).get("values", {})
+    errs = []
+    for k, v in vals.items():
+        try:
+            ok, msg = db.log_value(k, float(v))
+        except (TypeError, ValueError):
+            ok, msg = False, f"{k}: not a number"
+        if not ok:
+            errs.append(msg)
+    return jsonify(ok=not errs, errors=errs, checkin=db.checkin_state()), (400 if errs else 200)
+
+
+@api_bp.post("/checkin/reset")
+def reset_checkin():
+    db.reset()
+    return jsonify(ok=True)
+
+
+@api_bp.post("/astra")
+def astra():
+    """Talk to ASTRA: {"text": "my heart rate is 72", "day": 142}"""
+    j = request.get_json(force=True) or {}
+    return jsonify(assistant.respond(j.get("text", ""), j.get("day", db.DEFAULT_DAY)))
