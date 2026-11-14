@@ -79,7 +79,7 @@ const card=i=>`<div class="card"><div class="row" style="justify-content:space-b
 return `<div class="row" style="justify-content:space-between"><h2>Daily Physiological Check-in</h2><div class="row"><span class="st" style="color:var(--cy); border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.08)">Health Score ${C.score}/100</span><span class="st" style="color:var(--yl); border-color:rgba(250,204,21,0.3); background:rgba(250,204,21,0.08)">🔥 ${C.streak}-Day Streak</span></div></div>
 <div class="card warn" style="margin:16px 0">Clinical guidance telemetry only, not an automated medical diagnosis. Demo parameters active.</div>
 ${C.escalate?'<div class="card warn" style="margin-bottom:16px">▲ <b>Critical marker deviation detected.</b> Immediate flight surgeon consultation recommended.</div>':''}
-<div class="card"><h3>Input Today's Telemetry or voice command: "my heart rate is 72"</h3><div class="metrics" style="margin-top: 12px;">${C.items.map(i=>`<label>${i.label} (${i.unit})<input id="in_${i.key}" type="number" step="any" placeholder="${i.value}" class="ti"></label>`).join('')}</div><div class="row" style="margin-top:16px"><button class="btn" onclick="submitCheckin()">Save Telemetry</button><button class="f" onclick="resetCheckin()">Reset Demo State</button></div><div id="cerr" style="color:var(--or);margin-top:8px; font-weight:500;"></div></div>
+<div class="card"><div class="row" style="justify-content:space-between"><h3>Input Today's Telemetry</h3><button class="cmd" onclick="dictateCheckin()">🎙 Dictate readings</button></div><p style="color:var(--mut);margin:0">Say, for example: “heart rate 72, blood pressure 120 over 80, sleep 7 hours.” Review the fields, then save.</p><div id="voiceStatus" role="status" style="color:var(--cy);margin-top:8px"></div><div class="metrics" style="margin-top:12px">${C.items.map(i=>`<label>${i.label} (${i.unit})<input id="in_${i.key}" type="number" step="any" placeholder="${i.value}" class="ti"></label>`).join('')}</div><div class="row" style="margin-top:16px"><button class="btn" onclick="submitCheckin()">Save Telemetry</button><button class="f" onclick="resetCheckin()">Reset Demo State</button></div><div id="cerr" style="color:var(--or);margin-top:8px; font-weight:500;"></div></div>
 <div class="metrics" style="margin-top:16px">${C.items.map(card).join('')}</div>`};
 async function submitCheckin(){const v={};document.querySelectorAll('.ti').forEach(e=>{if(e.value!=='')v[e.id.slice(3)]=e.value});
 if(!Object.keys(v).length)return toast('Please enter at least one metric value');
@@ -87,6 +87,35 @@ const j=await (await fetch('/api/checkin',{method:'POST',headers:{'Content-Type'
 S=await (await fetch('/api/state?day='+day)).json();render();
 if(j.errors&&j.errors.length){$('#cerr').textContent=j.errors.join(' ');return}toast('Telemetry saved successfully');
 const w=S.checkin.items.find(i=>i.escalate);if(w)say('Your '+w.label.toLowerCase()+' is '+w.level+'. '+w.action)}
+async function parseCheckinVoice(text){
+const status=$('#voiceStatus');
+try{
+const response=await fetch('/api/checkin/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+const result=await response.json();
+if(!response.ok){status.textContent=(result.errors||['Could not parse the readings.']).join(' ');return}
+Object.entries(result.values).forEach(([key,value])=>{const input=$('#in_'+key);if(input)input.value=value});
+$('#cerr').textContent='';
+const labels=Object.fromEntries(S.checkin.items.map(item=>[item.key,item.label]));
+status.textContent='Readings entered: '+Object.keys(result.values).map(key=>labels[key]||key).join(', ')+'. Review them, then save.';
+}catch(error){status.textContent='Could not process voice entry: '+error.message}
+}
+function dictateCheckin(){
+const status=$('#voiceStatus');
+if(!SR){status.textContent='Speech recognition is not supported in this browser. You can enter readings below.';return}
+if(rec){rec.stop();return}
+let finalText='',failed=false;
+rec=new SR();rec.lang='en-US';rec.interimResults=true;
+$('#mic').classList.add('on');$('#wave').classList.add('on');status.textContent='Listening for measurements…';
+rec.onresult=e=>{
+const results=[...e.results],finalResults=results.filter(r=>r.isFinal);
+status.textContent='Listening… '+results.map(r=>r[0].transcript).join(' ');
+if(finalResults.length)finalText=finalResults.map(r=>r[0].transcript).join(' ');
+};
+rec.onerror=e=>{failed=true;status.textContent='Voice entry failed: '+e.error};
+rec.onend=()=>{rec=null;$('#mic').classList.remove('on');if(!speaking)$('#wave').classList.remove('on');
+if(!failed&&finalText.trim())parseCheckinVoice(finalText.trim());else if(!failed)status.textContent='No speech detected. Try again or enter readings below.'};
+try{rec.start()}catch(error){rec=null;$('#mic').classList.remove('on');$('#wave').classList.remove('on');status.textContent='Could not start voice entry: '+error.message}
+}
 async function resetCheckin(){await fetch('/api/checkin/reset',{method:'POST'});S=await (await fetch('/api/state?day='+day)).json();render();toast('Demo state reset')}
 
 /* ---------- control ---------- */

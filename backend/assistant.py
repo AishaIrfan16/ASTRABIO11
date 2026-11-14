@@ -23,7 +23,10 @@ VOICE = {
     "temp": r"temperature\D{0,12}(\d+(?:\.\d+)?)",
     "sleep": r"(?:slept|sleep)\D{0,12}(\d+(?:\.\d+)?)",
     "mood": r"mood\D{0,12}(\d+(?:\.\d+)?)",
+    "sys": r"(?:systolic(?: blood pressure)?|top number)\D{0,12}(\d+(?:\.\d+)?)",
+    "dia": r"(?:diastolic(?: blood pressure)?|bottom number)\D{0,12}(\d+(?:\.\d+)?)",
 }
+BLOOD_PRESSURE = r"(?:blood pressure|bp)\D{0,8}(\d+(?:\.\d+)?)\s*(?:over|/)\s*(\d+(?:\.\d+)?)"
 
 LLM_MODEL = os.getenv("ASTRA_MODEL", "claude-sonnet-4-6")          # Anthropic model
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -44,9 +47,19 @@ def provider():
 
 
 def voice_parse(text):
-    """Pull measurements out of free text: 'my pulse is 70' -> [('hr', 70.0)]."""
+    """Pull measurements out of free text, including paired blood pressure."""
     t = text.lower()
-    return [(k, float(m.group(1))) for k, p in VOICE.items() if (m := re.search(p, t))]
+    found = []
+    pressure = re.search(BLOOD_PRESSURE, t)
+    if pressure:
+        found.extend((("sys", float(pressure.group(1))), ("dia", float(pressure.group(2)))))
+    found.extend(
+        (k, float(m.group(1)))
+        for k, p in VOICE.items()
+        if k not in ("sys", "dia") or not pressure
+        if (m := re.search(p, t))
+    )
+    return found
 
 
 def lonely_reply():

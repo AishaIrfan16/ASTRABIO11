@@ -28,6 +28,18 @@ def post_checkin():
     return jsonify(ok=not errs, errors=errs, checkin=db.checkin_state()), (400 if errs else 200)
 
 
+@api_bp.post("/checkin/parse")
+def parse_checkin_voice():
+    """Parse dictated measurements without saving them: {"text": "pulse 72"}."""
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("text"), str):
+        return jsonify(ok=False, errors=["Send recognized speech in a 'text' field."]), 400
+    values = dict(assistant.voice_parse(payload["text"]))
+    if not values:
+        return jsonify(ok=False, errors=["No supported measurements found in the speech."]), 422
+    return jsonify(ok=True, values=values)
+
+
 @api_bp.post("/checkin/reset")
 def reset_checkin():
     db.reset()
