@@ -1,0 +1,11 @@
+# Backend
+flask>=3.0
+gunicorn
+anthropic>=0.40      # optional: only used if ANTHROPIC_API_KEY is set
+
+# Model file (models/trained_model.pkl is a scikit-learn pipeline) and notebook exports
+scikit-learn>=1.4
+joblib
+
+# Tests (optional)
+pytest>=8
