@@ -134,27 +134,31 @@ if('speechSynthesis' in window)speechSynthesis.cancel()}
 function finishVoice(requestId,message){if(requestId!==voiceRequest)return;
 if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null}voiceAudio=null;voiceController=null;speaking=false;$('#wave').classList.remove('on');
 document.querySelectorAll('.orb').forEach(o=>o.classList.remove('sp'));$('#tt').textContent=message||'ASTRA is ready'}
-function fallbackVoice(requestId,text,error){if(requestId!==voiceRequest)return;
-if(voiceAudio){voiceAudio.pause();voiceAudio=null}if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null}
-if(!('speechSynthesis' in window)){finishVoice(requestId,'Voice playback failed: '+error.message);return}
-$('#tt').textContent='FreeTTS unavailable; using browser voice.';
-const utterance=new SpeechSynthesisUtterance(text);utterance.onend=()=>finishVoice(requestId);
-utterance.onerror=()=>finishVoice(requestId,'FreeTTS and browser voice playback failed.');
-try{speechSynthesis.cancel();speechSynthesis.speak(utterance)}
-catch(fallbackError){finishVoice(requestId,'Browser voice playback failed: '+fallbackError.message)}}
+function browserVoices(){if(!('speechSynthesis' in window))return Promise.resolve([]);
+const synth=speechSynthesis,voices=synth.getVoices();if(voices.length)return Promise.resolve(voices);
+return new Promise(resolve=>{let settled=false;const done=()=>{if(settled)return;settled=true;clearTimeout(timer);
+synth.removeEventListener('voiceschanged',changed);resolve(synth.getVoices())};
+const changed=()=>{if(synth.getVoices().length)done()};const timer=setTimeout(done,700);
+synth.addEventListener('voiceschanged',changed)})}
+async function speakWithApi(requestId,text){if(requestId!==voiceRequest)return;
+if('speechSynthesis' in window)speechSynthesis.cancel();
+$('#tt').textContent='Using API voice…';voiceController=new AbortController();
+try{const response=await fetch('/api/voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text}),signal:voiceController.signal});
+if(requestId!==voiceRequest)return;
+if(!response.ok){const result=await response.json();throw new Error(result.error||'Speech generation failed.')}
+voiceUrl=URL.createObjectURL(await response.blob());voiceAudio=new Audio(voiceUrl);
+voiceAudio.onended=()=>finishVoice(requestId);voiceAudio.onerror=()=>finishVoice(requestId,'API voice playback failed.');
+await voiceAudio.play()}catch(error){if(requestId===voiceRequest&&error.name!=='AbortError')finishVoice(requestId,'API voice failed: '+error.message)}}
 async function say(t){LOG.push({n:1,t});const tt=$('#tt');const c=$('#cap');if(c)c.textContent='“'+t+'”';
 stopVoice();const requestId=voiceRequest;speaking=true;tt.textContent='ASTRA transmitting… '+t;$('#wave').classList.add('on');
 document.querySelectorAll('.orb').forEach(o=>o.classList.add('sp'));
 const ch=$('#chat');if(ch){ch.insertAdjacentHTML('beforeend',`<div class="bub">${t}</div>`);ch.scrollTop=1e9}
 if(muted){finishVoice(requestId);return}
-voiceController=new AbortController();
-try{const response=await fetch('/api/voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t}),signal:voiceController.signal});
-if(requestId!==voiceRequest)return;
-if(!response.ok){const result=await response.json();throw new Error(result.error||'Speech generation failed.')}
-voiceUrl=URL.createObjectURL(await response.blob());voiceAudio=new Audio(voiceUrl);
-voiceAudio.onended=()=>finishVoice(requestId);voiceAudio.onerror=()=>fallbackVoice(requestId,t,new Error('Audio playback failed.'));
-await voiceAudio.play()}catch(error){if(requestId!==voiceRequest)return;
-if(error.name!=='AbortError')fallbackVoice(requestId,t,error)}}
+const voices=await browserVoices();if(requestId!==voiceRequest)return;
+if(voices.length){try{const utterance=new SpeechSynthesisUtterance(t);utterance.onend=()=>finishVoice(requestId);
+utterance.onerror=()=>speakWithApi(requestId,t);speechSynthesis.cancel();speechSynthesis.speak(utterance)}
+catch(error){speakWithApi(requestId,t)}}
+else speakWithApi(requestId,t)}
 async function ask(text){text=text.replace(/^hey astra[, ]*/i,'');LOG.push({n:0,t:text});const ch=$('#chat');if(ch)ch.insertAdjacentHTML('beforeend',`<div class="bub u">${text}</div>`);
 const r=await (await fetch('/api/astra',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,day})})).json();
 S=await (await fetch('/api/state?day='+day)).json();if(r.select)sel=r.select;if(r.nav&&r.nav!=screen)go(r.nav);else if(r.select)go('body',1);else if(r.nav=='checkin')render();say(r.reply)}
