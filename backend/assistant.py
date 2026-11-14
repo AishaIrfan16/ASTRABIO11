@@ -2,9 +2,10 @@
 
 Replies come from built-in rules and work offline. An optional LLM can reword the reply:
 
-    ASTRA_LLM=ollama     small local model via Ollama (no internet needed)   <- default if OLLAMA_MODEL is set
-    ASTRA_LLM=anthropic  Claude API (needs ANTHROPIC_API_KEY)                <- default if the key is set
-    ASTRA_LLM=none       rules only
+    ASTRA_LLM=groq       Groq chat completions (needs GROQ_API_KEY or API_KEY)
+    ASTRA_LLM=ollama     small local model via Ollama (no internet needed)
+    ASTRA_LLM=anthropic  Claude API (needs ANTHROPIC_API_KEY)
+    ASTRA_LLM=none       rules only; automatic selection tries Groq before the default provider
 
 Safety rule: replies that carry measurements, status or escalation advice are never rewritten by a model.
 ASTRA gives guidance only, never a diagnosis.
@@ -37,13 +38,22 @@ SYSTEM = ("You are ASTRA, a calm, kind voice assistant for an astronaut on a lon
           "Use only the status data given. If something looks serious, tell them to contact the flight surgeon. Status data: ")
 
 
-def provider():
-    p = os.getenv("ASTRA_LLM", "").lower()
-    if p in ("ollama", "anthropic", "none"):
-        return p
+def default_provider():
+    """Return the configured default model, or Ollama when none is specified."""
     if os.getenv("ANTHROPIC_API_KEY"):
         return "anthropic"
-    return "ollama" if os.getenv("OLLAMA_MODEL") else "none"
+    return "ollama"
+
+
+def provider():
+    p = os.getenv("ASTRA_LLM", "").lower()
+    if p in ("groq", "ollama", "anthropic", "none"):
+        return p
+    from grok_chat import is_configured
+
+    if is_configured():
+        return "groq"
+    return default_provider()
 
 
 def voice_parse(text):
@@ -133,17 +143,31 @@ def _ask_anthropic(text, ctx):
     return r.content[0].text
 
 
+def _ask_groq(text, ctx):
+    from grok_chat import ask_groq
+
+    return ask_groq(text, system_prompt=SYSTEM + ctx)
+
+
 def llm_reply(text, day=DEFAULT_DAY):
-    """Reworded reply from the configured LLM, or None (no LLM, offline, timeout, empty answer)."""
-    p = provider()
-    if p == "none":
+    """Reword a reply, trying the default provider if Groq is unavailable."""
+    selected = provider()
+    if selected == "none":
         return None
-    try:
-        out = (_ask_ollama if p == "ollama" else _ask_anthropic)(text, _context(day)).strip()
-        return out[:600] or None
-    except Exception as e:  # server down / bad key / timeout: keep the rule-based reply
-        print(f"LLM fallback ({p}):", e)
-        return None
+    candidates = [selected]
+    if selected == "groq":
+        fallback = default_provider()
+        if fallback not in candidates:
+            candidates.append(fallback)
+    askers = {"groq": _ask_groq, "ollama": _ask_ollama, "anthropic": _ask_anthropic}
+    for name in candidates:
+        try:
+            out = askers[name](text, _context(day)).strip()
+            if out:
+                return out[:600]
+        except Exception as e:  # Continue to the default provider, then rules.
+            print(f"LLM fallback ({name}):", e)
+    return None
 
 
 def respond(text, day=DEFAULT_DAY):

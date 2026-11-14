@@ -77,7 +77,7 @@ input[type=range]{width:100%;accent-color:var(--cy);height:36px;cursor:pointer}
 #wave{display:flex;gap:4px;align-items:center;height:40px}
 #wave i{width:3px;height:6px;background:var(--mut);border-radius:3px}
 #wave.on i{animation:w .6s ease-in-out infinite alternate}
-@keyframes w{to{height:34px;background:var(--cy)}}
+@keyframes w{to{height:34px;background:#ee7e22}}
 #tl{flex:1;min-width:0}
 #tl input,.ti{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:99px;color:var(--tx);padding:12px 20px;font:inherit}
 .ti{display:block;margin-top:6px;border-radius:14px;padding:10px 14px}
