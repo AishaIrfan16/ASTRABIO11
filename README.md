@@ -11,11 +11,6 @@ An AI-assisted astronaut health and wellbeing platform designed to detect early 
 </p>
 
 <p align="center">
-<img width="1899" height="979" alt="Screenshot 2026-11-15 200845" src="https://github.com/user-attachments/assets/ab16d930-e6d2-4029-9814-502ee96f28d1" />
-<img width="1833" height="955" alt="Screenshot 2026-11-15 200906" src="https://github.com/user-attachments/assets/7e6accec-900e-4a3b-97a5-b73aff62d752" />
-<img width="1894" height="975" alt="Screenshot 2026-11-15 200934" src="https://github.com/user-attachments/assets/93e478aa-4b59-4e23-a03a-ea167a8244db" />
-<img width="1894" height="945" alt="Screenshot 2026-11-15 200945" src="https://github.com/user-attachments/assets/addf9355-2e65-4462-909f-60fb066c58da" />
-
 
 🌌 1. The Problem
 
@@ -60,16 +55,15 @@ Our mission: Detect early. Act intelligently. Protect the crew.
 Landing Page
 
 <p align="center">
-<img src="docs/images/astrabio-landing.png" alt="ASTRABIO Welcome Interface" width="100%">
-</p>
+<img width="1429" height="952" alt="Screenshot 2026-11-15 200826" src="https://github.com/user-attachments/assets/1cb10052-45b2-4a11-b968-5181a9f4a943" />
 
 The ASTRABIO landing experience introduces the mission and provides access to the platform's core capabilities.
 
 Mission Control Dashboard
 
 <p align="center">
-<img src="docs/images/astrabio-dashboard.png" alt="ASTRABIO Mission Control Dashboard" width="100%">
-</p>
+<img width="1899" height="979" alt="Screenshot 2026-11-15 200845" src="https://github.com/user-attachments/assets/a66ecadb-8a57-4c44-a57e-62fd6eaa7bd6" />
+
 
 The central dashboard brings astronaut health information and mission alerts together in one interface.
 
@@ -78,8 +72,8 @@ It provides an overview of mission status, space-weather alerts, astronaut wellb
 Astronaut Body Map & Health Monitoring
 
 <p align="center">
-<img src="docs/images/astrabio-bodymap.png" alt="Astronaut Body Map and Health Monitoring" width="100%">
-</p>
+<img width="1833" height="955" alt="Screenshot 2026-11-15 200906" src="https://github.com/user-attachments/assets/7afd3a6f-4549-43e0-a7b9-3ddfe12815be" />
+
 
 The interactive body map provides a visual representation of health-related risk indicators.
 
@@ -94,8 +88,8 @@ Mood
 Radiation Guardian
 
 <p align="center">
-<img src="docs/images/astrabio-radiation.png" alt="ASTRABIO Radiation Guardian Dashboard" width="100%">
-</p>
+<img width="1894" height="975" alt="Screenshot 2026-11-15 200934" src="https://github.com/user-attachments/assets/ac1a92b0-4f50-4ff8-952b-9e40bb06d1dd" />
+
 
 The Radiation Guardian interface presents radiation-related mission information, dose indicators, space-weather alerts, and astronaut risk visualizations.
 
