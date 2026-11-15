@@ -9,7 +9,5 @@ python-dotenv>=1.0
 scikit-learn>=1.4
 joblib
 
-requests
-
 # Tests (optional)
 pytest>=8
