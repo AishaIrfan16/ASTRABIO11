@@ -1,8 +1,9 @@
-🚀 ASTRABIO — AI-Powered Astronaut Health Intelligence
+<img width="1429" height="952" alt="image" src="https://github.com/user-attachments/assets/7ef87152-8cc8-409a-8d01-d5655eaf948d" />🚀 ASTRABIO — AI-Powered Astronaut Health Intelligence
 
 <p align="center">
-<img src="docs/images/astrabio-landing.png" alt="ASTRABIO Landing Page" width="100%">
-</p>
+<img width="1429" height="952" alt="Screenshot 2026-11-15 200826" src="https://github.com/user-attachments/assets/7dc3da69-0aa4-4f26-9cc2-e96d1ca0da67" />
+
+
 
 <h3 align="center">Your Health. Your Mission. Our Intelligence.</h3>
 
@@ -11,11 +12,11 @@ An AI-assisted astronaut health and wellbeing platform designed to detect early 
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/Project-SpaceTech-00D9F5?style=for-the-badge" alt="SpaceTech">
-<img src="https://img.shields.io/badge/AI-ASTRA-00BFA6?style=for-the-badge" alt="AI ASTRA">
-<img src="https://img.shields.io/badge/Backend-Flask-black?style=for-the-badge&logo=flask" alt="Flask">
-<img src="https://img.shields.io/badge/Status-Prototype-orange?style=for-the-badge" alt="Prototype">
-</p>
+<img width="1899" height="979" alt="Screenshot 2026-11-15 200845" src="https://github.com/user-attachments/assets/ab16d930-e6d2-4029-9814-502ee96f28d1" />
+<img width="1833" height="955" alt="Screenshot 2026-11-15 200906" src="https://github.com/user-attachments/assets/7e6accec-900e-4a3b-97a5-b73aff62d752" />
+<img width="1894" height="975" alt="Screenshot 2026-11-15 200934" src="https://github.com/user-attachments/assets/93e478aa-4b59-4e23-a03a-ea167a8244db" />
+<img width="1894" height="945" alt="Screenshot 2026-11-15 200945" src="https://github.com/user-attachments/assets/addf9355-2e65-4462-909f-60fb066c58da" />
+
 
 🌌 1. The Problem
 
