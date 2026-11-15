@@ -4,6 +4,12 @@
 An AI-assisted astronaut health and wellbeing platform designed to detect early health risks, support onboard medical decisions, and protect crew members during long-duration space missions.
 </p>
 
+<p align="center">
+  <a href="https://astrabio11-production.up.railway.app/">Live demo</a> ·
+  <a href="docs/ASTRA_NASA_Space_Apps_2026.pdf">Presentation (PDF)</a> ·
+  <a href="docs/PROJECT_DOCUMENTATION.docx">Project documentation</a>
+</p>
+
 ## 🌌 1. The Problem
 
 Imagine being hundreds of millions of kilometers away from Earth, where a simple medical emergency could become life-threatening.
@@ -209,33 +215,41 @@ The platform is designed around the following principles:
 ## 🏗️ 9. Project Architecture
 
 ```text
-ASTRABIO/
+ASTRABIO11/
 │
 ├── backend/
-│   └── main.py
+│   ├── main.py            # Flask entry point: serves the frontend and /api routes
+│   ├── api.py             # API routes (Flask blueprint)
+│   ├── assistant.py       # ASTRA replies: built-in rules + optional LLM rewording
+│   ├── database.py        # Check-in engine, baselines and mission time series
+│   ├── grok_chat.py       # Groq integration
+│   ├── moderation.py      # Text moderation (RapidAPI)
+│   └── voice.py           # Speech generation (FreeTTS)
 │
 ├── frontend/
-│   ├── HTML files
-│   ├── CSS files
-│   └── JavaScript files
+│   ├── index.html
+│   ├── app.js
+│   └── style.css
 │
 ├── data/
-│   └── astronaut_data.csv
+│   └── astronaut_data.csv # Simulated mission telemetry
 │
 ├── models/
 │   └── trained_model.pkl
 │
 ├── notebooks/
+│   ├── notebook1.ipynb
+│   ├── notebook2.ipynb
+│   └── notebook3.ipynb
 │
 ├── tests/
+│   ├── test_groq_chat.py
+│   ├── test_voice_entry.py
+│   └── test_voice_service.py
 │
 ├── docs/
 │   ├── PROJECT_DOCUMENTATION.docx
-│   └── images/
-│       ├── astrabio-landing.png
-│       ├── astrabio-dashboard.png
-│       ├── astrabio-bodymap.png
-│       └── astrabio-radiation.png
+│   └── ASTRA_NASA_Space_Apps_2026.pdf
 │
 ├── requirements.txt
 └── README.md
@@ -257,8 +271,8 @@ The Flask backend serves the frontend and provides API endpoints for dashboard d
 **1. Clone the repository**
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
-cd ASTRABIO
+git clone https://github.com/Saidamin45/ASTRABIO11.git
+cd ASTRABIO11
 ```
 
 **2. Create a virtual environment**
@@ -291,11 +305,11 @@ python backend/main.py
 
 **5. Open the application**
 
-Visit:
-
-<https://astrabio11-production.up.railway.app/>
+Visit <http://127.0.0.1:5000> (or the port you set in `PORT`). Chrome or Edge is recommended for the voice features.
 
 Your ASTRABIO mission dashboard should now be available locally.
+
+Prefer not to install anything? Try the live demo: <https://astrabio11-production.up.railway.app/>
 
 ## 🔑 11. Optional API Configuration
 
@@ -329,7 +343,7 @@ Run the automated test suite:
 python -m pytest
 ```
 
-The project includes tests for voice parsing and speech-service handling.
+The project includes tests for voice parsing, speech-service handling, and the Groq chat integration.
 
 ## 🔌 13. API Endpoints
 
@@ -345,7 +359,7 @@ The Flask application exposes the following API endpoints:
 | POST | `/api/voice` | Generate speech audio |
 | POST | `/api/moderate` | Submit text for moderation |
 
-Detailed technical information is available in Project Documentation.
+Detailed technical information is available in the [Project Documentation](docs/PROJECT_DOCUMENTATION.docx).
 
 ## 🌍 14. Beyond Mars — Real-World Applications
 
