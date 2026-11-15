@@ -1,4 +1,3 @@
-<img width="1429" height="952" alt="image" src="https://github.com/user-attachments/assets/7ef87152-8cc8-409a-8d01-d5655eaf948d" />🚀 ASTRABIO — AI-Powered Astronaut Health Intelligence
 
 <p align="center">
 <img width="1429" height="952" alt="Screenshot 2026-11-15 200826" src="https://github.com/user-attachments/assets/7dc3da69-0aa4-4f26-9cc2-e96d1ca0da67" />
