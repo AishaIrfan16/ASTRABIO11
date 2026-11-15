@@ -284,8 +284,7 @@ python backend/main.py
 
 Visit:
 
-text
-http://127.0.0.1:5000
+"https://astrabio11-production.up.railway.app/"
 
 
 Your ASTRABIO mission dashboard should now be available locally.
